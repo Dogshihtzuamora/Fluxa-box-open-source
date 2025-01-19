@@ -1,3 +1,3 @@
 # Fluxa-box-open-source
 
-![Logo](caminho/para/o/logo.png)
+![Logo](https://fluxa-box.vercel.app/fluxa%20boxu.jpg)
