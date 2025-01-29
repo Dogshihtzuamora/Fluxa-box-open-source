@@ -1,1 +1,726 @@
-j
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>extractor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: write;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+        }
+
+        .topbar {
+            width: 100%;
+            background-color: #0023c6;
+            color: white;
+            padding: 15px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .nav-items {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+        }
+
+        .nav-item {
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .content {
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .section {
+            display: none;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        .upload-btn {
+            width: 100px;
+            height: 100px;
+            background-color: #0023c6;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            margin: 20px auto;
+        }
+
+        .upload-btn:hover {
+            background-color: #000066;
+        }
+
+        .plus-icon {
+            font-size: 40px;
+            color: white;
+        }
+
+        .games-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .game-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: box-shadow 0.3s, transform 0.3s;
+        }
+
+        .game-card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            transform: translateY(-2px);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+#videoOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: black; 
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+#introVideo {
+    width: 100%;
+    height: auto;
+    max-height: 140%;
+}
+
+.dark-theme {
+    background-color: #121212;
+    color: white;
+}
+
+.dark-theme .topbar {
+    background-color: #1e1e1e;
+}
+
+.dark-theme .nav-item {
+    color: white;
+}
+
+.dark-theme .nav-item:hover,
+.dark-theme .nav-item.active {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.dark-theme .upload-btn {
+    background-color: #1e1e1e;
+}
+
+.dark-theme .upload-btn:hover {
+    background-color: #333333;
+}
+
+.dark-theme .game-card {
+    background-color: #333333;
+    color: white;
+    border: 1px solid #444444;
+}
+
+.dark-theme .game-card:hover {
+    background-color: #444444;
+    box-shadow: 0 4px 8px rgba(255, 255, 255, 0.2);
+}
+
+.dark-theme .game-logo {
+    background-color: #444444;
+}
+
+.dark-theme .game-name {
+    color: white;
+}
+
+.dark-theme input[type="file"] {
+    background-color: #333333;
+    color: white;
+}
+
+#config-section {
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-top: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+#config-section h2 {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 20px;
+}
+
+.config-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 15px;
+}
+
+.config-item label {
+    font-size: 18px;
+    font-weight: normal;
+}
+
+.config-item input[type="checkbox"] {
+    width: 30px;
+    height: 30px;
+}
+
+.config-item button {
+    background-color: #0023c6;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+
+.config-item button:hover {
+    background-color: #000066;
+}
+
+.dark-theme #config-section {
+    background-color: #333333;
+    color: white;
+}
+
+.dark-theme #config-section h2 {
+    color: white;
+}
+
+.dark-theme .config-item label {
+    color: white;
+}
+
+.dark-theme .config-item button {
+    background-color: #444444;
+}
+
+.dark-theme .config-item button:hover {
+    background-color: #666666;
+}
+
+.dark-theme .config-item input[type="checkbox"] {
+    background-color: #444444;
+}
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <div class="nav-items">
+            <div class="nav-item" onclick="showSection('games')" data-tradr="5">Jogos</div>
+            <div class="nav-item" onclick="showSection('recent')" data-tradr="3">recente</div>
+            <div class="nav-item" onclick="showSection('config')" data-tradr="4">configuração</div>
+        </div>
+    </div>
+
+    <div class="content">
+        <div id="games-section" class="section">
+            <div class="upload-btn" onclick="document.getElementById('fileInput').click();">
+                <span class="plus-icon">+</span>
+            </div>
+            <input type="file" id="fileInput" accept=".flbxg">
+        </div>
+
+        <div id="recent-section" class="section">
+            <div class="games-list" id="recent-games"></div>
+        </div>
+
+      <div id="config-section" class="section">
+    <h2 data-tradr="4">Configurações</h2>
+      
+    <div class="config-item">
+        <label for="themeToggle" data-tradr="6">Modo Escuro</label>
+        <input type="checkbox" id="themeToggle" onclick="toggleTheme()">
+    </div>
+      
+    <div class="config-item">
+        <button onclick="resetSettings()" data-tradr="7">Resetar Configurações</button>
+    </div>
+    
+    <div class="config-item">
+        <button onclick="showAbout()" data-tradr="1">Sobre</button>
+    </div>
+   
+    <div class="config-item">
+        <button onclick="window.open('https://fluxa-box.vercel.app/', '_blank')" data-tradr="8">Site Oficial</button>
+    </div>
+</div>
+    </div>
+    
+ <div id="videoOverlay">
+    <video id="introVideo" autoplay>
+        <source src="intro.mp4" type="video/mp4">
+        Seu navegador não suporta o formato de vídeo.
+    </video>
+</div>
+
+
+   
+
+    <script>
+     showSection('games');
+
+function showSection(sectionName) {
+    document.querySelectorAll('.section').forEach(section => {
+        section.classList.remove('active');
+    });
+    
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    
+    document.getElementById(`${sectionName}-section`).classList.add('active');
+    document.querySelector(`.nav-item:nth-child(${sectionName === 'games' ? 1 : sectionName === 'recent' ? 2 : 3})`).classList.add('active');
+}
+
+function parseGameInfo(infoContent) {
+    const gameInfo = {};
+    const lines = infoContent.split('\n');
+    
+    lines.forEach(line => {
+        const nmMatch = line.match(/\[nm\]="(.+)"/);
+        const lgMatch = line.match(/\[lg\]="(.+)"/);
+        
+        if (nmMatch) {
+            gameInfo.name = nmMatch[1];
+        }
+        
+        if (lgMatch) {
+            gameInfo.bimg = lgMatch[1];
+        }
+    });
+    
+    return gameInfo;
+}
+
+function readFileAsText(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = (e) => reject(e);
+        reader.readAsText(file);
+    });
+}
+
+function addToRecentGames(gameInfo, files) {
+    const gameCard = document.createElement('div');
+    gameCard.className = 'game-card';
+      
+    const gameContentWrapper = document.createElement('div');
+    gameContentWrapper.className = 'game-content-wrapper';
+       
+    if (gameInfo.bimg) {
+        const bimgPath = Object.keys(files).find(path => path.endsWith(gameInfo.bimg));
+        
+        if (bimgPath) {
+            const bimgContent = files[bimgPath];
+            
+            const imgElement = document.createElement('img');
+            imgElement.src = 'data:image/jpeg;base64,' + bimgContent;
+            imgElement.alt = gameInfo.name || "Logo do jogo";
+            imgElement.className = 'game-logo';
+                       
+            imgElement.addEventListener('load', function() {                
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                const size = 200; 
+                
+                canvas.width = size;
+                canvas.height = size;                
+               
+                const aspectRatio = this.naturalWidth / this.naturalHeight;
+                let sourceX = 0;
+                let sourceY = 0;
+                let sourceWidth = this.naturalWidth;
+                let sourceHeight = this.naturalHeight;
+                
+                if (aspectRatio > 1) {                 
+                    sourceWidth = this.naturalHeight;
+                    sourceX = (this.naturalWidth - sourceWidth) / 2;
+                } else if (aspectRatio < 1) {                  
+                    sourceHeight = this.naturalWidth;
+                    sourceY = (this.naturalHeight - sourceHeight) / 2;
+                }
+                              
+                ctx.drawImage(
+                    this, 
+                    sourceX, sourceY, sourceWidth, sourceHeight, 
+                    0, 0, size, size
+                );
+                             
+                imgElement.src = canvas.toDataURL('image/jpeg');
+                imgElement.width = size;
+                imgElement.height = size;
+            });
+            
+            gameContentWrapper.appendChild(imgElement);
+        }
+    }
+      
+    const gameName = document.createElement('div');
+    gameName.className = 'game-name';
+    gameName.textContent = gameInfo.name || 'Jogo Desconhecido';
+      
+    gameContentWrapper.appendChild(gameName);
+    
+    gameCard.appendChild(gameContentWrapper);
+    gameCard.onclick = () => startGame(gameInfo.name);
+    document.getElementById('recent-games').appendChild(gameCard);
+}
+
+function startGame(gameName) {
+  const video = document.getElementById('introVideo');
+    const videoOverlay = document.getElementById('videoOverlay');
+  
+    videoOverlay.style.display = 'flex'; 
+   
+    video.style.display = 'block';
+   
+    video.play();
+    
+ 
+    video.onended = function() {
+        videoOverlay.style.display = 'none'; 
+        window.location.href = 'execution.html';
+    };
+}
+
+function saveFilesToIndexedDB(files) {
+    return new Promise((resolve, reject) => {
+        const dbRequest = indexedDB.open('FLBXGFilesDB', 1);
+
+        dbRequest.onupgradeneeded = function (event) {
+            const db = event.target.result;
+            const objectStore = db.createObjectStore('files', { keyPath: 'filename' });
+            objectStore.createIndex('filename', 'filename', { unique: true });
+        };
+
+        dbRequest.onsuccess = function (event) {
+            const db = event.target.result;
+            const transaction = db.transaction('files', 'readwrite');
+            const objectStore = transaction.objectStore('files');
+            
+            for (const [filename, content] of Object.entries(files)) {
+                const fileObject = { filename, content };
+                objectStore.put(fileObject);
+            }
+
+            transaction.oncomplete = function () {
+                resolve();
+            };
+
+            transaction.onerror = function () {
+                reject('Erro ao salvar os arquivos no IndexedDB');
+            };
+        };
+
+        dbRequest.onerror = function () {
+            reject('Erro ao abrir IndexedDB');
+        };
+    });
+}
+
+document.getElementById('fileInput').addEventListener('change', async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const fileContent = await readFileAsText(file);
+
+    try {
+        const result = await FLBXG.desconverterFlbxg(fileContent);
+               
+        const infoFile = Object.keys(result.files).find(path => path.endsWith('info.infs'));
+        
+        if (infoFile) {
+            const gameInfoContent = result.files[infoFile];
+            const gameInfo = parseGameInfo(gameInfoContent);
+           
+            await saveFilesToIndexedDB(result.files);
+                      
+            addToRecentGames(gameInfo, result.files);
+            
+            alertUi('Sucesso','Arquivo carregado com sucesso!');
+        } else {           
+            await saveFilesToIndexedDB(result.files);
+            addToRecentGames({ name: file.name }, result.files);
+              alertUi('Sucesso','Arquivo carregado com sucesso!');
+        }
+    } catch (error) {
+        alertUi("Erro",'Erro ao desconverter o arquivo FLBXG: ' + error.message);
+    }
+});
+
+const additionalStyles = `
+    .game-content-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+    }
+    
+    .game-logo {
+        width: 200px;
+        height: 200px;
+        object-fit: cover;
+        object-position: center;
+        background-color: #f0f0f0;
+        border-radius: 8px;
+    }
+    
+    .game-name {
+        text-align: center;
+        font-weight: bold;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    .game-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.3s, box-shadow 0.3s;
+        cursor: pointer;
+    }
+    
+    .game-card:hover {
+        transform: scale(1.05);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+`;
+
+document.querySelector('style').textContent += additionalStyles;
+
+document.addEventListener('DOMContentLoaded', function () {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+        document.querySelector('body').classList.add('dark-theme');
+        document.getElementById('themeToggle').checked = true;
+    }
+});
+
+function toggleTheme() {
+    const body = document.querySelector('body');
+    const themeToggle = document.getElementById('themeToggle');
+    
+    if (themeToggle.checked) {
+        body.classList.add('dark-theme');
+        localStorage.setItem('theme', 'dark');
+    } else {
+        body.classList.remove('dark-theme');
+        localStorage.setItem('theme', 'light');
+    }
+}
+
+function resetSettings() {
+    localStorage.removeItem('theme');
+    document.getElementById('themeToggle').checked = false;
+    document.querySelector('body').classList.remove('dark-theme');
+}
+
+
+function showAbout() {
+    alertUi(tradr("1"),tradr("2"));
+}
+
+
+function alertUi(title, message) {
+    const alertOverlay = document.createElement('div');
+    alertOverlay.id = 'customAlert';
+    alertOverlay.classList.add('custom-alert');
+
+    const alertContent = document.createElement('div');
+    alertContent.classList.add('alert-content');
+
+    const alertHeader = document.createElement('div');
+    alertHeader.classList.add('alert-header');
+    const alertTitle = document.createElement('h3');
+    alertTitle.textContent = title;
+    alertHeader.appendChild(alertTitle);
+
+    const alertBody = document.createElement('div');
+    alertBody.classList.add('alert-body');
+      
+    const formattedMessage = message.replace(/\n/g, '<br>');
+    alertBody.innerHTML = formattedMessage;
+
+    const alertFooter = document.createElement('div');
+    alertFooter.classList.add('alert-footer');
+    const closeButton = document.createElement('button');
+    closeButton.textContent = 'Fechar';
+    closeButton.onclick = () => {
+        document.body.removeChild(alertOverlay);
+    };
+    alertFooter.appendChild(closeButton);
+
+    alertContent.appendChild(alertHeader);
+    alertContent.appendChild(alertBody);
+    alertContent.appendChild(alertFooter);
+    alertOverlay.appendChild(alertContent);
+
+    document.body.appendChild(alertOverlay);
+
+    const style = document.createElement('style');
+    style.innerHTML = `
+        .custom-alert {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .alert-content {
+            background-color: #fff;
+            border-radius: 8px;
+            width: 300px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.3s;
+        }
+
+        .alert-header h3 {
+            margin: 0;
+            font-size: 18px;
+            color: #333;
+        }
+
+        .alert-body {
+            margin: 20px 0;
+        }
+
+        .alert-body p {
+            margin: 0;
+            font-size: 16px;
+            color: #555;
+        }
+
+        .alert-footer {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .alert-footer button {
+            padding: 8px 15px;
+            background-color: #0023c6;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .alert-footer button:hover {
+            background-color: #000066;
+        }
+
+        .dark-theme .alert-content {
+            background-color: #333;
+            color: #fff;
+        }
+
+        .dark-theme .alert-body p {
+            color: #ccc;
+        }
+
+        .dark-theme .alert-footer button {
+            background-color: #555;
+        }
+
+        .dark-theme .alert-footer button:hover {
+            background-color: #777;
+        }
+
+        .dark-theme .alert-header h3 {
+            color: #fff;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+
+    if (document.body.classList.contains('dark-theme')) {
+        alertOverlay.classList.add('dark-theme');
+    }
+}
+
+
+    </script>
+     <script src="../lib/flxbg.js"></script>
+     <script src="../lib/t.js"></script>
+</body>
+</html>
+
+
+
+
+  
