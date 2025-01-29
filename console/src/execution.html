@@ -1,1 +1,237 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Execution</title>
+    <style>
+       body {
+            margin: 0;
+            padding: 0;
+            background-color: black;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
 
+        #gameViewport {
+            background-color: white;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+            transform-origin: center;
+            width: 1200px;
+            height: 600px;
+        }
+
+        @media (orientation: landscape) {
+            #gameViewport {
+                height: 90vh;
+                width: calc(90vh * 2); 
+                max-width: 95vw;
+            }
+        }
+
+        @media (orientation: portrait) {
+            #gameViewport {
+                width: 95vw;
+                height: calc(95vw * 1/2); 
+                max-height: 90vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameViewport"></div> 
+    
+    <script src="../lib/btype.js"></script>
+    
+     <script src="../lib/joystick.js"></script>
+    <script>
+        (function() {
+    const viewport = document.getElementById('gameViewport');
+    
+    function autoAdjust() {
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+
+        viewport.style.width = `${viewportWidth}px`;
+        viewport.style.height = `${viewportHeight}px`;
+    }
+  
+    window.onload = autoAdjust;
+  
+    window.addEventListener('resize', autoAdjust);
+})();
+        
+        function createGameEnvironment() {
+            const viewport = document.getElementById('gameViewport');            
+           
+            const gameDocument = {
+                body: viewport,
+                createElement: function(tagName) {
+                    return document.createElement(tagName);
+                },
+                appendChild: function(element) {
+                    viewport.appendChild(element);
+                },
+                getElementById: function(id) {
+                    return viewport.querySelector('#' + id);
+                },
+                querySelector: function(selector) {
+                    return viewport.querySelector(selector);
+                },
+                querySelectorAll: function(selector) {
+                    return viewport.querySelectorAll(selector);
+                },
+                getElementsByTagName: function(tagName) {
+                    return viewport.getElementsByTagName(tagName);
+                },
+                getElementsByClassName: function(className) {
+                    return viewport.getElementsByClassName(className);
+                }
+            };
+          
+            const gameWindow = {
+                document: gameDocument,
+                innerWidth: viewport.clientWidth,
+                innerHeight: viewport.clientHeight,
+                addEventListener: window.addEventListener.bind(window),
+                removeEventListener: window.removeEventListener.bind(window),
+                requestAnimationFrame: window.requestAnimationFrame.bind(window),
+                cancelAnimationFrame: window.cancelAnimationFrame.bind(window),
+                setTimeout: window.setTimeout.bind(window),
+                setInterval: window.setInterval.bind(window),
+                clearTimeout: window.clearTimeout.bind(window),
+                clearInterval: window.clearInterval.bind(window)
+            };
+
+            return { gameWindow, gameDocument };
+        }
+
+        function loadAndExecuteFiles() {
+            const dbRequest = indexedDB.open('FLBXGFilesDB', 1);
+
+            dbRequest.onsuccess = function(event) {
+                const db = event.target.result;
+                const transaction = db.transaction('files', 'readonly');
+                const objectStore = transaction.objectStore('files');
+                const getAllRequest = objectStore.getAll();
+
+                getAllRequest.onsuccess = function() {
+                    const files = getAllRequest.result;
+                    const blobUrls = new Map();
+
+                    files.forEach(file => {
+                        const blob = new Blob([file.content], { type: getContentType(file.filename.split('.').pop().toLowerCase()) });
+                        const blobUrl = URL.createObjectURL(blob);
+                        blobUrls.set(file.filename, blobUrl);
+                    });
+
+                    const gameFile = files.find(file => file.filename.endsWith('game.js'));
+                    if (gameFile) {
+                        const resolvedContent = resolveFileReferences(gameFile.content, gameFile.filename, blobUrls);
+                        executeFile(resolvedContent);
+                    }
+                     window.addEventListener('unload', () => {
+                        blobUrls.forEach(url => URL.revokeObjectURL(url));
+                    });
+                };
+
+                getAllRequest.onerror = function() {
+                    console.log('Erro ao carregar os arquivos do IndexedDB');
+                };
+            };
+
+            dbRequest.onerror = function() {
+                console.log('Erro ao abrir IndexedDB');
+            };
+        }
+
+        function resolveFileReferences(content, path, blobUrls) {
+            function resolveRelativePath(currentPath, referencePath) {
+                const currentParts = currentPath.split('/').filter(Boolean);
+                const referenceParts = referencePath.split('/').filter(Boolean);
+                if (referencePath.startsWith('/')) return referencePath;
+                currentParts.pop();
+                return currentParts.concat(referenceParts).join('/');
+            }
+
+            for (const [filePath, blobUrl] of blobUrls) {
+                const fileName = filePath.split('/').pop();
+                const resolvedPath = resolveRelativePath(path, fileName);
+                if (filePath === resolvedPath) {
+                    const regex = new RegExp(`(["'])${fileName}(["'])`, 'g');
+                    content = content.replace(regex, `$1${blobUrl}$2`);
+                }
+            }
+
+            return content;
+        }
+
+        function getContentType(extension) {
+            const mimeTypes = {
+                'png': 'image/png',
+                'jpg': 'image/jpeg',
+                'jpeg': 'image/jpeg',
+                'gif': 'image/gif',
+                'js': 'application/javascript',
+                'html': 'text/html',
+                'css': 'text/css',
+                'json': 'application/json',
+                'txt': 'text/plain'
+            };
+            return mimeTypes[extension] || 'application/octet-stream';
+        }
+
+        function executeFile(content) {
+            try {
+                const { gameWindow, gameDocument } = createGameEnvironment();
+                               
+                content = content.replace(/document\./g, 'gameDocument.');
+                content = content.replace(/window\./g, 'gameWindow.');
+                
+                const wrappedContent = `
+                    (function(window, document) {
+                        ${content}
+                    })(gameWindow, gameDocument);
+                `;
+                const func = new Function('gameWindow', 'gameDocument', wrappedContent);
+                func(gameWindow, gameDocument);
+                
+                console.log('game.js executado com sucesso');
+            } catch (error) {
+                console.error('Erro ao executar game.js: ' + error.message);
+            }
+        }
+
+        window.onload = function() {
+            loadAndExecuteFiles();
+        };
+
+        window.onbeforeunload = function() {
+            const dbRequest = indexedDB.open('FLBXGFilesDB', 1);
+
+            dbRequest.onsuccess = function(event) {
+                const db = event.target.result;
+                const transaction = db.transaction('files', 'readwrite');
+                const objectStore = transaction.objectStore('files');
+                objectStore.clear();
+            };
+
+            dbRequest.onerror = function() {
+                console.log('Erro ao acessar IndexedDB durante o unload');
+            };
+        };
+
+  
+
+
+
+
+    </script>
+    <script src="../lib/jsterpreter.js"></script>
+</body>
+</html>
