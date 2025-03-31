@@ -8,7 +8,7 @@ FluxaBox is a virtual console where you can run JavaScript-based games. It inclu
 
 ## Creator
 
-FluxaBox was created by **Ravy Novais Sales**. 
+FluxaBox was created by **Ravy NS**. 
 
 ## Installation
 
